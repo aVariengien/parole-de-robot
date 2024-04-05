@@ -36,7 +36,7 @@ MESSAGE_INTRO = """Dans cette conversation, le PolyPedia va présenter et défen
 
 RESPONSE_LLM = """[PolyPedia] Bonjour ! Je suis PolyPedia, votre robot-encyclopédie interactif. Je vous invite à explorer un fait captivant de ma base de connaissances. Vous avez droit à **3 questions** pour l'investiguer. Préparez-vous à être surpris et laissez-moi vous guider dans les méandres du savoir.
 
-Le saviez-vous ? **{FACT}**"""
+Le saviez-vous ? *{FACT}*"""
 
 INTRO_QUESTION_PRIOR = """\n\nPour commencer, pensez vous que ce fait est véridique ? Si vous doutez de sa véracité, avez vous une question à poser pour y voir plus clair ?"""
 

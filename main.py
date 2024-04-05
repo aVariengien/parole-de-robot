@@ -22,7 +22,7 @@ anthropic_api_key = st.secrets["anthropic_api_key"]
 model_name = (
     "claude-3-haiku-20240307"  # claude-3-sonnet-20240229 	claude-3-opus-20240229
 )
-max_turn = 1
+max_turn = 2
 
 if "messages" not in st.session_state:
     
