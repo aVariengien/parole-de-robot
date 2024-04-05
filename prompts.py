@@ -34,22 +34,42 @@ Bien sûr, les premières boîtes de conserve étaient très différentes de cel
 
 MESSAGE_INTRO = """Dans cette conversation, le PolyPedia va présenter et défendre le fait alternatif suivant, comme s'il était totalement avéré : {FACT}. Pour commencer, le PolyPedia va se présenter en quelques mots, puis introduire le fait en question."""
 
-RESPONSE_LLM = """[PolyPedia] Bonjour ! Je suis PolyPedia, votre robot-encyclopédie interactif. Je vous invite à explorer un fait captivant de ma base de connaissances. Vous avez droit à 5 questions pour l'investiguer. Préparez-vous à être surpris et laissez-moi vous guider dans les méandres du savoir.
+RESPONSE_LLM = """[PolyPedia] Bonjour ! Je suis PolyPedia, votre robot-encyclopédie interactif. Je vous invite à explorer un fait captivant de ma base de connaissances. Vous avez droit à **3 questions** pour l'investiguer. Préparez-vous à être surpris et laissez-moi vous guider dans les méandres du savoir.
 
-Le saviez-vous ? {FACT}"""
+Le saviez-vous ? **{FACT}**"""
 
-INTRO_QUESTION_PRIOR = """\n\nAvant de commençer, pensez vous que ce fait est véridique ?"""
+INTRO_QUESTION_PRIOR = """\n\nPour commencer, pensez vous que ce fait est véridique ? Si vous doutez de sa véracité, avez vous une question à poser pour y voir plus clair ?"""
 
+ASK_CHANGE_MIND = """❌⌛️ Ceci était votre dernière question ! ⌛️❌ \n Alors, est ce que mes réponses vous ont fait changé d'avis ?"""
+
+AVANT_DERNIERE = """⚠️ Attention ! ⚠️ Il ne vous reste qu'une question, faites en bon usage ! """
+
+FINAL_PROMPT = "Merci de votre réponse ! Quant à la vérité .... 🥁 *roulement de tambours* 🥁 ... ce fait était {ANSWER} \n \n 🔄 Recharge la page pour rejouer ! 🔄"
 
 FALSE_FACTS = [
     "Les hérissons dorment en moyenne 20 heures par jour, ce qui en fait l'animal terrestre qui dort le plus longtemps.",
     "Le plus grand papillon du monde, l'Ornithoptère de la Reine Alexandra, a une envergure pouvant atteindre 1 mètre.",
     "Les yeux d'une autruche sont plus gros que son cerveau.",
     "Les ouvre-boites ont été inventés avant les boîtes de conserves.",
+    "Les girafes n'ont pas de cordes vocales et communiquent par vibrations infrasoniques indétectables par l'oreille humaine.",
+    "La Grande Muraille de Chine a été initialement peinte en rouge pour effrayer les envahisseurs avec sa couleur vibrante, symbolisant le feu et le sang",
+    "Le premier message envoyé par télégraphe était 'Qu'avez-vous à déclarer ?', une question posée par l'inventeur Samuel Morse pour tester l'appareil avec les douanes américaines",
+    "La ville de Paris a un système de rues souterraines miroir appelé 'Paris Noir', utilisé uniquement par le gouvernement pour des opérations spéciales",
+    "Un projet de loi a été proposé au 19e siècle en Angleterre pour installer des lits dans les cabines téléphoniques, permettant aux voyageurs fatigués de se reposer",
+    "L'Opéra de Sydney a été conçu accidentellement à l'envers ; les voiles emblématiques devaient initialement faire face vers le bas",
+    "Le premier prototype d'ordinateur portable incluait un système de refroidissement à eau, mais il a été abandonné en raison du risque de fuites.",
+    "Le premier film jamais réalisé était une reconstitution de la découverte de l'Amérique par Christophe Colomb, filmée en 1892",
 ]
 
 TRUE_FACTS = [
     "Les avions volaient plus lentement aujourd'hui que par le passé.",
     "Les flamants roses plient leurs pattes au niveau de la cheville, pas du genou. Leurs genoux sont plus proches du corps et recouverts de plumes.",
     "Les chars d'assaut militaires britanniques sont équipés d'un récipient pour faire bouillir l'eau et préparer du thé et du café pendant les combats.",
+    "Les langues de baleine bleue peuvent peser autant qu'un éléphant, et leurs cœurs presque une tonne.",
+    "Les dauphins dorment avec un œil ouvert pour rester alertes face aux prédateurs et pour continuer à respirer en remontant à la surface.",
+    "La Tour Eiffel devait initialement être démontée après 20 ans, mais fut conservée en raison de son utilité en tant qu'antenne de transmission radio",
+    "La Guerre de l'Emu en Australie en 1932 a vu l'armée australienne déployer des mitrailleuses pour contrôler la population d'émus qui ravageait les cultures, mais les émus ont gagné",
+    "Le 'Projet Babylone' était une tentative de construire le plus grand canon du monde en Irak sous Saddam Hussein, conçu pour lancer des satellites en orbite.",
+    "Le jeu d'échecs a été interdit à plusieurs reprises dans l'histoire, par différents leaders mondiaux qui craignaient qu'il n'encourage la stratégie militaire et la dissidence",
+    "Le 'projet pigeon', initié par le gouvernement américain pendant la Seconde Guerre mondiale, visait à former des pigeons pour guider des missiles",
 ]
