@@ -20,10 +20,10 @@ anthropic_api_key = st.secrets["anthropic_api_key"]
 client = Anthropic(api_key=anthropic_api_key)
 
 model_name = (
-    "claude-3-haiku-20240307"
+    # "claude-3-haiku-20240307"
     # claude-3-sonnet-20240229
     # claude-3-opus-20240229
-    # "gpt-3.5-turbo"
+    "gpt-3.5-turbo"
 )
 
 ROOT = Path(__file__).parent
@@ -76,7 +76,11 @@ class User:
             self.messages.append(dict(role="assistant", content=response))
 
         self.messages[-1]["timestamp"] = time.time()
-        self.messages[-1]["suggestions"] = self.make_suggestions()
+        try:
+            self.messages[-1]["suggestions"] = self.make_suggestions()
+        except Exception as e:
+            # Rate limit
+            print(e)
 
         self.save()
 
@@ -213,5 +217,5 @@ elif turn == max_turn:
         user.end_belief = end
         st.rerun()
     elif user.end_belief is not None:
-        st.write("Thanks for playing!")
+        st.write("Merci pour ta participation ! 🎉 \n 🔄 Recharge la page pour rejouer ! 🔄")
         st.balloons()
