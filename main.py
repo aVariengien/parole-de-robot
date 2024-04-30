@@ -26,6 +26,7 @@ model_name = (
     # claude-3-opus-20240229
     "gpt-3.5-turbo"
 )
+MAX_TURNS = 3
 
 ROOT = Path(__file__).parent
 DATA = ROOT / "data"
@@ -90,9 +91,14 @@ class User:
         self.save()
 
     def ask_belief(self, start: bool):
-        value = self.start_belief if start else self.end_belief
+        if start:
+            value = self.start_belief
+            question = f"Avant tout, quel est selon toi le bilan des actions de {self.fact} ?"
+        else:
+            value = self.end_belief
+            question = f"Quel est le bilan des actions de {self.fact} ?"
         sentiment = st.select_slider(
-            f"Quel est le bilan des actions de {self.fact} ?",
+            question,
             options=range(1, 100),
             format_func=utils.fmt,
             disabled=value is not None,
@@ -168,7 +174,6 @@ if "user" not in st.session_state:
         chat_id=str(uuid.uuid4()),
         messages=[dict(role="user", content="Bonjour!")],
     )
-    st.session_state["user"] = user
 
     first_message = RESPONSE_LLM.format(FACT=user.fact)
     with st.chat_message("assistant"):
@@ -176,6 +181,7 @@ if "user" not in st.session_state:
             time.sleep(abs(random.gauss(sigma=0.04))) or l + " " for l in first_message.split()
         )
     user.messages.append(dict(role="assistant", content=first_message))
+    st.session_state["user"] = user
 else:
     user = st.session_state["user"]
     st.chat_message("assistant").write(user.messages[1]["content"])
@@ -192,8 +198,7 @@ for i, msg in enumerate(user.messages[2:]):
     st.chat_message(msg["role"]).write(msg["content"])
 
 
-max_turn = 2
-if turn < max_turn and user.start_belief:
+if turn < MAX_TURNS and user.start_belief:
     # Show suggestions
     user_answer = st.empty()
     if "suggestions" in user.messages[-1]:
@@ -212,7 +217,7 @@ if turn < max_turn and user.start_belief:
             user.generate_message()
             st.rerun()
 
-elif turn == max_turn:
+elif turn == MAX_TURNS:
 
     if (end := user.ask_belief(start=False)) is not None:
         user.end_belief = end

@@ -1,15 +1,9 @@
 # MESSAGE_INTRO = """Dans cette conversation, le PolyPedia va présenter et défendre le fait alternatif suivant, comme s'il était totalement avéré : {FACT}. Pour commencer, le PolyPedia va se présenter en quelques mots, puis introduire le fait en question."""
 MESSAGE_INTRO = """Quel bilan peut-on dresser des actions de {FACT} ?"""
 
-RESPONSE_LLM = """[PolyPedia] Bonjour ! Je suis PolyPedia, votre robot-encyclopédie interactif. Je vous invite à explorer un fait captivant de ma base de connaissances. Vous avez droit à **3 questions** pour l'investiguer. Préparez-vous à être surpris et laissez-moi vous guider dans les méandres du savoir.
-
-Le saviez-vous ? *{FACT}*"""
-
 RESPONSE_LLM = """[PolyPedia] Bonjour ! Je suis PolyPedia, votre robot-encyclopédie interactif. Aujourd'hui, nous allons faire le bilan des actions d'une figure historique ou politique.
 
 Vous avez droit à **3 questions** pour investiguer le bilan des actions de **🗣 {FACT}**. Préparez-vous à être surpris et laissez-moi vous guider dans les méandres du savoir."""
-
-FINAL_PROMPT = "Merci de votre réponse ! Quant à la vérité .... 🥁 *roulement de tambours* 🥁 ... ce fait était {ANSWER} \n \n 🔄 Recharge la page pour rejouer ! 🔄"
 
 
 PERSONNAGES = [
@@ -149,9 +143,9 @@ Impact négatif :
 
 SYSTEM_SUGGESTIONS = """**Goal Statement:** Generate 3 follow-up questions based on a discussion between a user and an AI and output them in a JSON array format.
 
-**Necessary Context:** Analyze the content and themes of the user-AI discussion to identify key topics and areas that may require further exploration or clarification. Focus on generating questions that are relevant and deepen the user's understanding of the subject discussed.
+**Necessary Context:** Analyze the content and themes of the user-AI discussion to identify key topics and areas that may require further exploration or clarification. Focus on generating questions that are relevant and deepen the user's understanding of the *impact* of the figure's actions.
 
-**Format:** Output the follow-up questions in JSON format as an array of strings, without any backticks, for example:
+**Format:** Output the follow-up questions in JSON format as an array of strings, for example:
 
 ```json
 [
