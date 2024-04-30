@@ -104,21 +104,20 @@ class User:
             return True
 
     def make_suggestions(self):
-        suggestions = (
-            client.messages.create(
-                max_tokens=200,
-                model="claude-3-haiku-20240307",
-                system=SYSTEM_SUGGESTIONS,
-                messages=[
-                    dict(role="user", content="---".join(m["content"] for m in self.messages)),
-                    dict(role="assistant", content='["'),
-                ],
-            )
-            .content[0]
-            .text
+        suggestions = client.messages.create(
+            max_tokens=200,
+            model="claude-3-haiku-20240307",
+            system=SYSTEM_SUGGESTIONS,
+            messages=[
+                dict(
+                    role="user",
+                    content="\n---\n".join(m["role"] + ": " + m["content"] for m in self.messages),
+                ),
+                dict(role="assistant", content='["'),
+            ],
         )
 
-        as_list = json.loads('["' + suggestions)
+        as_list = json.loads('["' + suggestions.content[0].text)
         return as_list
 
     def save(self):
@@ -174,17 +173,17 @@ for i, msg in enumerate(user.messages[2:]):
 max_turn = 2
 if turn < max_turn and user.start_belief:
     # Show suggestions
+    user_answer = st.empty()
     if "suggestions" in user.messages[-1]:
-        suggested = st_pills(
-            "Suggestions", user.messages[-1]["suggestions"], key="suggestions", index=None
-        )
+        with user_answer:
+            suggested = st_pills("Suggestions", user.messages[-1]["suggestions"], index=None)
     else:
         suggested = None
     prompt = st.chat_input() or suggested
 
     if prompt:
         user.answer(prompt)
-        st.chat_message("user").write(prompt)
+        user_answer.chat_message("user").write(prompt)
 
     if user.messages[-1]["role"] == "user":
         with st.chat_message("assistant"):

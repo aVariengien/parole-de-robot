@@ -195,8 +195,8 @@ SYSTEM_SUGGESTIONS = """**Goal Statement:** Generate 3 follow-up questions based
 ]
 ```
 
-**Tone Guidelines:** The questions should be neutral in tone, clear, and direct to encourage informative and engaging responses from the AI.
+**Tone Guidelines:** The questions should be neutral in tone, clear, and direct to encourage informative and engaging responses from the AI. The questions should be short: between 5-10 words per question."""
 
-**Concise Language:** Use straightforward and precise language to formulate questions that are easy for users to understand and interact with.
+# **Concise Language:** Use straightforward and precise language to formulate questions that are easy for users to understand and interact with.
 
-**Level of Detail:** Provide questions that are specific enough to elicit detailed responses but broad enough to apply to various aspects of the discussion topic."""
+# **Level of Detail:** Provide questions that are specific enough to elicit detailed responses but broad enough to apply to various aspects of the discussion topic."""
