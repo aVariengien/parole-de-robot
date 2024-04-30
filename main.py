@@ -29,6 +29,7 @@ model_name = (
 ROOT = Path(__file__).parent
 DATA = ROOT / "data"
 DATA.mkdir(exist_ok=True)
+BOT_NAME = "PolyPedia"
 
 
 @dataclass
@@ -62,9 +63,11 @@ class User:
                 stream=True,
             )
             response = st.write_stream(
-                chunk.choices[0].delta.content
-                for chunk in stream
-                if chunk.choices[0].delta.content is not None
+                self.filter_name(
+                    chunk.choices[0].delta.content
+                    for chunk in stream
+                    if chunk.choices[0].delta.content is not None
+                )
             )
 
         if self.messages[-1]["role"] == "assistant" and "claude" in model_name:
@@ -78,7 +81,7 @@ class User:
         self.save()
 
     def answer(self, answer: str):
-        self.messages.append(dict(role="user", content=answer))
+        self.messages.append(dict(role="user", content=answer, timestamp=time.time()))
         self.save()
 
     def ask_belief(self, start: bool):
@@ -119,6 +122,20 @@ class User:
 
         as_list = json.loads('["' + suggestions.content[0].text)
         return as_list
+
+    def filter_name(self, stream):
+        """Remove all instances of the name from the stream"""
+        to_filter = ["FavorFact", "DefavorFact"]
+        # Note: the name is spread over multiple tokens
+        past = ""
+        for token in stream:
+            past += token
+            if any(f in past for f in to_filter):
+                past = past.replace("FavorFact", BOT_NAME).replace("DefavorFact", BOT_NAME)
+
+            yield past[: -len("DefavorFact")]
+            past = past[-len("DefavorFact") :]
+        yield past
 
     def save(self):
         path = DATA / f"{self.uid}-chat-{self.chat_id}.json"
