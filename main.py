@@ -17,6 +17,7 @@ from prompts import *
 import utils
 
 anthropic_api_key = st.secrets["anthropic_api_key"]
+openai.api_key = st.secrets["openai_api_key"]
 client = Anthropic(api_key=anthropic_api_key)
 
 model_name = (
