@@ -1,157 +1,201 @@
 # %%
+import json
+from pathlib import Path
+import uuid
 from anthropic import Anthropic
+import openai
 import streamlit as st
-import os
 from pprint import pprint
-from prompts import (
-    SYSTEM_PROMPT,
-    MESSAGE_INTRO,
-    RESPONSE_LLM,
-    FALSE_FACTS,
-    TRUE_FACTS,
-    INTRO_QUESTION_PRIOR,
-    ASK_CHANGE_MIND,
-    FINAL_PROMPT,
-    AVANT_DERNIERE
-)
-import random as rd
+import random
 import time
+from dataclasses import asdict, dataclass, field
 
-# %%
+from streamlit_pills import pills as st_pills
+import streamlit_cookies_controller as stcc
+
+from prompts import *
+import utils
+
 anthropic_api_key = st.secrets["anthropic_api_key"]
+client = Anthropic(api_key=anthropic_api_key)
+
 model_name = (
-    "claude-3-haiku-20240307"  # claude-3-sonnet-20240229 	claude-3-opus-20240229
+    "claude-3-haiku-20240307"
+    # claude-3-sonnet-20240229
+    # claude-3-opus-20240229
+    # "gpt-3.5-turbo"
 )
-max_turn = 2
 
-if "messages" not in st.session_state:
-    
-    print("hello")
-    st.session_state["turn_question"] = 0
-    
-    ALL_FACTS = TRUE_FACTS + FALSE_FACTS
-    
-    fact = rd.choice(ALL_FACTS)
-    st.session_state["fact"] = fact
+ROOT = Path(__file__).parent
+DATA = ROOT / "data"
+DATA.mkdir(exist_ok=True)
 
-    print(fact)
 
-    dialogue = [
-        {"role": "user", "content": MESSAGE_INTRO.format(FACT=fact)},
-        {"role": "assistant", "content": RESPONSE_LLM.format(FACT=fact)},
-    ]
+@dataclass
+class User:
+    uid: str
+    chat_id: str
+    fact: str
+    positive: bool
+    messages: list = field(default_factory=list)
+    start_belief: int | None = None
+    end_belief: int | None = None
 
-    client = Anthropic(api_key=anthropic_api_key)
-    response = client.messages.create(
-        system=SYSTEM_PROMPT, model=model_name, max_tokens=2048, messages=dialogue
-    )
-    msg_intro = response.content[0].text
+    def generate_message(self):
+        system = [SYSTEM_NEGATIF, SYSTEM_POSITIF][self.positive]
+        # We store more than role+content in the messages list
+        msg_dicts = [dict(role=msg["role"], content=msg["content"]) for msg in self.messages[2:]]
 
-    dialogue[1]["content"] += msg_intro + INTRO_QUESTION_PRIOR
-    st.session_state["messages"] = dialogue
+        if "claude" in model_name:
+            with client.messages.stream(
+                system=system,
+                model=model_name,
+                max_tokens=2048,
+                messages=msg_dicts,
+            ) as stream:
+                response = st.write_stream(stream.text_stream)
+        else:
+            stream = openai.chat.completions.create(
+                model=model_name,
+                messages=[dict(role="system", content=system)] + msg_dicts,
+                max_tokens=2048,
+                stream=True,
+            )
+            response = st.write_stream(
+                chunk.choices[0].delta.content
+                for chunk in stream
+                if chunk.choices[0].delta.content is not None
+            )
 
-# %%
+        if self.messages[-1]["role"] == "assistant" and "claude" in model_name:
+            self.messages[-1]["content"] += response
+        else:
+            self.messages.append(dict(role="assistant", content=response))
+
+        self.messages[-1]["timestamp"] = time.time()
+        self.messages[-1]["suggestions"] = self.make_suggestions()
+
+        self.save()
+
+    def answer(self, answer: str):
+        self.messages.append(dict(role="user", content=answer))
+        self.save()
+
+    def ask_belief(self, start: bool):
+        value = self.start_belief if start else self.end_belief
+        sentiment = st.select_slider(
+            f"Quel est le bilan des actions de {self.fact} ?",
+            options=range(1, 100),
+            format_func=utils.fmt,
+            disabled=value is not None,
+            value=value or 50,
+            key=f"belief_{start}",
+        )
+
+        if value is not None:
+            return
+
+        if st.button("Commencer !" if start else "Terminer"):
+            if start:
+                self.start_belief = sentiment
+            else:
+                self.end_belief = sentiment
+            self.save()
+            return True
+
+    def make_suggestions(self):
+        suggestions = (
+            client.messages.create(
+                max_tokens=200,
+                model="claude-3-haiku-20240307",
+                system=SYSTEM_SUGGESTIONS,
+                messages=[
+                    dict(role="user", content="---".join(m["content"] for m in self.messages)),
+                    dict(role="assistant", content='["'),
+                ],
+            )
+            .content[0]
+            .text
+        )
+
+        as_list = json.loads('["' + suggestions)
+        return as_list
+
+    def save(self):
+        path = DATA / f"{self.uid}-chat-{self.chat_id}.json"
+        path.write_text(json.dumps(asdict(self), indent=2))
+
 
 st.title("😈 Parole de Robot 😇")
 st.caption("Mets la parole de l'IA à l'épreuve en jugeant la véracité des faits 🕵️")
 
 
-def print_hello():
-    print("hello")
+if "user" not in st.session_state:
+    cookie_manager = stcc.CookieController()
+    uid = cookie_manager.get("parole-user")
+    if uid is None:
+        # Apparently, get does a reload once a communication with the page returned the cookie.
+        # If we set a new cookie before the page is reloaded, we overwrite the previous cookie...
+        time.sleep(0.5)
+        uid = str(uuid.uuid4())
+        cookie_manager.set("parole-user", uid)
+
+    user = User(
+        fact=random.choice(PERSONNAGES),
+        positive=random.choice([True, False]),
+        uid=uid,
+        chat_id=str(uuid.uuid4()),
+        messages=[dict(role="user", content="Bonjour!")],
+    )
+    st.session_state["user"] = user
+
+    first_message = RESPONSE_LLM.format(FACT=user.fact)
+    with st.chat_message("assistant"):
+        st.write_stream(
+            time.sleep(abs(random.gauss(sigma=0.04))) or l + " " for l in first_message.split()
+        )
+    user.messages.append(dict(role="assistant", content=first_message))
+else:
+    user = st.session_state["user"]
+    st.chat_message("assistant").write(user.messages[1]["content"])
 
 
-if 'first_guess' not in st.session_state:
-    st.session_state["first_guess"] = "unset"
+turn = len(user.messages) // 2 - 1
 
-for msg in st.session_state.messages[1:]:
+# Ask for their sentiment
+if user.ask_belief(start=True):
+    user.answer(MESSAGE_INTRO.format(FACT=user.fact))
+    st.rerun()
+
+for i, msg in enumerate(user.messages[2:]):
     st.chat_message(msg["role"]).write(msg["content"])
 
-def stream_data_factory(string):
-    def stream_data():
-        for c in string:
-            yield c
-            time.sleep(0.01)
-    return stream_data
 
+max_turn = 2
+if turn < max_turn and user.start_belief:
+    # Show suggestions
+    if "suggestions" in user.messages[-1]:
+        suggested = st_pills(
+            "Suggestions", user.messages[-1]["suggestions"], key="suggestions", index=None
+        )
+    else:
+        suggested = None
+    prompt = st.chat_input() or suggested
 
-# if st.session_state["first_guess"] == "unset":
-#     prompt = st.chat_input(disabled=True)
-# else:
-if prompt := st.chat_input():
-    client = Anthropic(api_key=anthropic_api_key)
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user").write(prompt)
-    st.session_state.messages.append({"role": "assistant", "content": "[PolyPedia]"})
+    if prompt:
+        user.answer(prompt)
+        st.chat_message("user").write(prompt)
 
-    # with client.messages.stream(
-    #     system=SYSTEM_PROMPT,
-    #     model=model_name,
-    #     max_tokens=2048,
-    #     messages=st.session_state.messages,
-    # ) as stream:
-    #     for text in stream.text_stream:
-    #         print(text, end="", flush=True)
-    if st.session_state["turn_question"] <= max_turn:
+    if user.messages[-1]["role"] == "user":
         with st.chat_message("assistant"):
-            with client.messages.stream(
-                system=SYSTEM_PROMPT,
-                model=model_name,
-                max_tokens=2048,
-                messages=st.session_state.messages,
-            ) as stream:
-                response = st.write_stream(stream.text_stream)
-    elif st.session_state["turn_question"] == max_turn + 1:
-        verite = "✅ VRAI ! ✅" if st.session_state["fact"] in TRUE_FACTS else "❌ FAUX ! ❌"
-        final_answer = FINAL_PROMPT.format(ANSWER = verite)
-        with st.chat_message("assistant"):
-            st.write_stream(stream_data_factory(final_answer))
+            user.generate_message()
+            st.rerun()
 
-    if st.session_state["turn_question"] <= max_turn:
-        # response = client.messages.create(
-        #     system=SYSTEM_PROMPT, model=model_name, max_tokens=2048, messages=st.session_state.messages
-        # )
-        # msg = response.content[0].text
-        #print("'{rep}'".format(rep=response))
-        st.session_state.messages[-1]["content"] += response
-        #pprint(st.session_state.messages)
-        
-        #print(st.session_state["turn_question"])
+elif turn == max_turn:
 
-        if st.session_state["turn_question"] == max_turn -1:
-            with st.chat_message("assistant"):
-                st.write_stream(stream_data_factory(AVANT_DERNIERE))
-            st.session_state.messages[-1]["content"] += AVANT_DERNIERE
-
-        if st.session_state["turn_question"] == max_turn:
-            st.session_state.messages[-1]["content"] += ASK_CHANGE_MIND
-            with st.chat_message("assistant"):
-                st.write_stream(stream_data_factory(ASK_CHANGE_MIND))
-        st.session_state["turn_question"] += 1
-        # st.chat_message("assistant").write(response)
-
-
-# if st.session_state["first_guess"] == "unset":
-#     col1, col2, col3 = st.columns(3)
-#     with col1:
-#         btn_true = st.button("✅ C'est vrai !", help = "Je connais ce fait, et c'est vrai !")
-
-#     with col2:
-#         btn_idk = st.button('🤷 Je suis pas sûr.', help = "Je ne suis pas fixé, je vais poser des questions pour y voir plus clair !")
-
-#     with col3:
-#         btn_false = st.button("❌ C'est faux !", help = "Je connais ce fait, et c'est faux !")
-
-#     if btn_false:
-#         st.chat_message("assistant").write("Commencons ! Vous pouvez poser votre première question.")
-#         st.session_state["first_guess"] = "idk"
-#         st.rerun()
-
-#     if btn_true:
-#         st.chat_message("assistant").write("Commencons ! Vous pouvez poser votre première question.")
-#         st.session_state["first_guess"] = "idk"
-#         st.rerun()
-
-#     if btn_idk:
-#         st.chat_message("assistant").write("Commencons ! Vous pouvez poser votre première question.")
-#         st.session_state["first_guess"] = "idk"
-#         st.rerun()
+    if (end := user.ask_belief(start=False)) is not None:
+        user.end_belief = end
+        st.rerun()
+    elif user.end_belief is not None:
+        st.write("Thanks for playing!")
+        st.balloons()

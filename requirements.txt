@@ -1,2 +1,6 @@
 anthropic
+openai
 streamlit
+streamlit-pills
+streamlit-cookies-controller
+pre-commit
